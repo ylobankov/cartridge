@@ -5,6 +5,7 @@ local ffi = require('ffi')
 local errno = require('errno')
 local checks = require('checks')
 local errors = require('errors')
+local digest = require('digest')
 
 local e_fopen = errors.new_class('Can not open file')
 local e_fread = errors.new_class('Can not read from file')
@@ -139,6 +140,15 @@ local function file_write(path, data, opts, perm)
     return data
 end
 
+local function password_digest(password, salt)
+    local saltpassword = password
+    if salt ~= nil then
+        saltpassword = password..salt
+    end
+    return digest.base64_encode(digest.sha512(saltpassword),
+        {nopad = true, urlsafe = true, nowrap = true})
+end
+
 return {
 	deepcmp = deepcmp,
     table_find = table_find,
@@ -148,4 +158,6 @@ return {
     file_read = file_read,
     file_write = file_write,
     file_exists = file_exists,
+
+    password_digest = password_digest,
 }

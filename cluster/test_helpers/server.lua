@@ -168,4 +168,19 @@ function Server:download_config()
     return yaml.decode(self:http_request('get', '/admin/config').body)
 end
 
+--- Upload tokens
+-- @tparam string|table config - table will be encoded as yaml and posted to /admin/tokens.
+function Server:upload_tokens(tokens)
+    checks('table', 'string|table')
+    if type(tokens) == 'table' then
+        tokens = yaml.encode(tokens)
+    end
+    return self:http_request('put', '/admin/tokens', {body = tokens})
+end
+
+--- Download tokens
+function Server:download_tokens()
+    return yaml.decode(self:http_request('get', '/admin/tokens').body)
+end
+
 return Server

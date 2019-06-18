@@ -1,6 +1,7 @@
 import { ApolloClient } from 'apollo-client'
 import { HttpLink } from 'apollo-link-http'
 import { InMemoryCache } from 'apollo-cache-inmemory'
+import gql from 'graphql-tag'
 // import { withClientState } from 'apollo-link-state'
 // import { ApolloLink } from 'apollo-link'
 
@@ -37,6 +38,14 @@ export default {
     return client.mutate({ mutation, variables: variables }).then(r => r.data);
   }
 };
+
+window.fetchGraphql = (query, variables = {}) => {
+  return client.query({ query: gql(query), variables: variables }).then(r => r.data);
+}
+
+window.mutateGraphql = (query, variables = {}) => {
+  return client.mutate({ mutation: gql(query), variables: variables }).then(r => r.data);
+}
 
 export const isGraphqlErrorResponse
   = error =>

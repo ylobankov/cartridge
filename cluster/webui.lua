@@ -10,6 +10,7 @@ local api_auth = require('cluster.webui.api-auth')
 local api_config = require('cluster.webui.api-config')
 local api_vshard = require('cluster.webui.api-vshard')
 local api_topology = require('cluster.webui.api-topology')
+local api_tokens = require('cluster.webui.api-tokens')
 
 local function init(httpd)
     front.init(httpd)
@@ -21,6 +22,9 @@ local function init(httpd)
 
     -- User management
     api_auth.init(graphql)
+
+    -- Token management
+    api_tokens.init(httpd, graphql)
 
     -- Config upload/download
     api_config.init(httpd)
