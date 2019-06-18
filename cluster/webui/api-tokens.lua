@@ -2,54 +2,73 @@
 
 local log = require('log')
 local yaml = require('yaml').new()
-
-local tokens = require('cluster.tokens')
-local gql_types = require('cluster.graphql.types')
 local errors = require('errors')
-local http_utils = require('cluster.http-utils')
+local checks = require('checks')
+
 local auth = require('cluster.auth')
+-- local tokens = require('cluster.tokens')
+local gql_types = require('cluster.graphql.types')
+local http_utils = require('cluster.http-utils')
 local confapplier = require('cluster.confapplier')
 
 local module_name = 'cluster.webui.api-tokens'
 
 local gql_type_token = gql_types.object({
-    name = 'ClusterApplicationToken',
-    description = 'A token that will be used in apps',
+    name = 'Token',
+    description = 'Auth token apps',
     fields = {
-        hash = gql_types.string.nonNull,
-        token = gql_types.string,
+        name = gql_types.string.nonNull,
+        secret = gql_types.string,
+        enabled = gql_types.boolean.nonNull,
         created_at = gql_types.long.nonNull,
         updated_at = gql_types.long.nonNull,
-        name = gql_types.string.nonNull,
-        enabled = gql_types.boolean.nonNull,
-        hash_algorithm = gql_types.string.nonNull,
     }
 })
 
-local function list_tokens(_, args)
-    return tokens.list_tokens(args.part_name)
+local function tokens(_, args)
+    checks('?', {name = '?string'})
+
+    if args.name ~= nil then
+        local token, err = auth.get_token(args.name)
+
+        if token == nil then
+            return nil, err
+        end
+
+        return {token}
+    else
+        return auth.list_tokens()
+    end
 end
 
-local function add_token(_, args)
-    return tokens.add_token(args.name)
+local function create_token(_, args)
+    checks('?', {name = 'string'})
+    return auth.create_token(args.name)
+end
+
+local function remove_token(_, args)
+    checks('?', {name = 'string'})
+    return auth.remove_token(args.name)
+end
+
+local function rename_token(_, args)
+    checks('?', {name = 'string', rename = 'string'})
+    return auth.edit_token(args.name, {rename = args.rename})
 end
 
 local function enable_token(_, args)
-    return tokens.set_token_enabled(args.hash, true)
+    checks('?', {name = 'string'})
+    return auth.edit_token(args.name, {disabled = false})
 end
 
 local function disable_token(_, args)
-    return tokens.set_token_enabled(args.hash, false)
+    checks('?', {name = 'string'})
+    return auth.edit_token(args.name, {disabled = true})
 end
-
-
-local function rename_token(_, args)
-    return tokens.rename_token(args.hash, args.name)
-end
-
 
 local function regenerate_token(_, args)
-    return tokens.regenerate_token(args.hash)
+    checks('?', {name = 'string'})
+    return auth.edit_token(args.name, {regenerate = true})
 end
 
 local e_download_tokens = errors.new_class('Tokens download failed')
@@ -126,35 +145,13 @@ local function init(httpd, graphql)
 
     graphql.add_callback({
         prefix = 'cluster',
-        name = 'access_tokens',
-        doc = 'Fetch all access tokens',
+        name = 'tokens',
+        doc = 'List access tokens',
         args = {
-            part_name = gql_types.string,
+            name = gql_types.string,
         },
-        kind = gql_types.list(gql_type_token.nonNull),
-        callback = module_name .. '.list_tokens',
-    })
-
-    graphql.add_mutation({
-        prefix = 'cluster',
-        name = 'add_access_token',
-        doc = 'Add access token',
-        args = {
-            name = gql_types.string.nonNull
-        },
-        kind = gql_type_token.nonNull,
-        callback = module_name .. '.add_token',
-    })
-
-    graphql.add_mutation({
-        prefix = 'cluster',
-        name = 'regenerate_access_token',
-        doc = 'Regenerate access token',
-        args = {
-            hash = gql_types.string.nonNull,
-        },
-        kind = gql_type_token.nonNull,
-        callback = module_name .. '.regenerate_token',
+        kind = gql_types.list(gql_type_token).nonNull,
+        callback = module_name .. '.tokens',
     })
 
     graphql.add_mutation({
@@ -162,45 +159,41 @@ local function init(httpd, graphql)
         name = 'rename_token',
         doc = 'Rename access token',
         args = {
-            hash = gql_types.string.nonNull,
             name = gql_types.string.nonNull,
+            rename = gql_types.string.nonNull,
         },
         kind = gql_type_token.nonNull,
-        callback = module_name .. '.rename_token',
+        callback = module_name .. '.' .. 'rename_token',
     })
 
-    graphql.add_mutation({
-        prefix = 'cluster',
-        name = 'enable_token',
-        doc = 'Enable access token',
-        args = {
-            hash = gql_types.string.nonNull,
-        },
-        kind = gql_type_token.nonNull,
-        callback = module_name .. '.enable_token',
-    })
+    local function add_token_mutation(name, doc)
+        graphql.add_mutation({
+            prefix = 'cluster',
+            name = name,
+            doc = doc,
+            args = {
+                name = gql_types.string.nonNull,
+            },
+            kind = gql_type_token.nonNull,
+            callback = module_name .. '.' .. name,
+        })
+    end
 
-    graphql.add_mutation({
-        prefix = 'cluster',
-        name = 'disable_token',
-        doc = 'Disable access token',
-        args = {
-            hash = gql_types.string.nonNull,
-        },
-        kind = gql_type_token.nonNull,
-        callback = module_name .. '.disable_token',
-    })
+    add_token_mutation('create_token', 'Create access token')
+    add_token_mutation('remove_token', 'Remove access token')
+    add_token_mutation('enable_token', 'Enable access token')
+    add_token_mutation('disable_token', 'Disable access token')
+    add_token_mutation('regenerate_token', 'Regenerate access token secret')
 end
 
 return {
     init = init,
 
-    add_token = add_token,
-    list_tokens = list_tokens,
-    regenerate_token = regenerate_token,
+    tokens = tokens,
+    create_token = create_token,
+    remove_token = remove_token,
+    rename_token = rename_token,
     enable_token = enable_token,
     disable_token = disable_token,
-    rename_token = rename_token,
-
-    gql_type_token = gql_type_token,
+    regenerate_token = regenerate_token,
 }
