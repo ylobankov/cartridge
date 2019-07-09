@@ -23,10 +23,12 @@ yaml.cfg({
 local vars = require('cluster.vars').new('cluster.auth')
 local confapplier = require('cluster.confapplier')
 local cluster_cookie = require('cluster.cluster-cookie')
+-- local passwords = require('cluster.passwords')
 
 vars:new('enabled', false)
 vars:new('callbacks', {})
 vars:new('cookie_max_age', 30*24*3600) -- in seconds
+-- vars:new('password_policy', {})
 -- TODO: vars:new('cookie_caching_time', 60) -- in seconds
 local e_check_cookie = errors.new_class('Checking cookie failed')
 local e_check_header = errors.new_class('Checking auth headers failed')
@@ -37,6 +39,8 @@ local e_edit_user = errors.new_class('Auth callback "edit_user()" failed')
 local e_list_users = errors.new_class('Auth callback "list_users()" failed')
 local e_remove_user = errors.new_class('Auth callback "remove_user()" failed')
 local e_check_password = errors.new_class('Auth callback "check_password()" failed')
+-- local e_password_policy = errors.new_class('Auth callback "check_password_policy()" failed')
+
 
 --- Allow or deny unauthenticated access to the administrator's page.
 -- Before the bootstrap, the function affects only the current instance.
@@ -274,6 +278,11 @@ local function add_user(username, password, fullname, email)
     if vars.callbacks.add_user == nil then
         return nil, e_callback:new('add_user() callback isn\'t set')
     end
+
+    -- local err = passwords.check_password_policy(password, vars.password_policy)
+    -- if err ~= nil then
+    --     return nil, e_password_policy(err)
+    -- end
 
     return e_add_user:pcall(function()
         local user, err = vars.callbacks.add_user(username, password, fullname, email)
