@@ -209,7 +209,7 @@ class Server(object):
         r = requests.post(url,
             json=request,
             headers=headers,
-            timeout=TARANTOOL_CONNECTION_TIMEOUT,
+            timeout=TARANTOOL_CONNECTION_TIMEOUT + 1,
             **kwargs
         )
 

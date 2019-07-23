@@ -425,9 +425,14 @@ end
 -- @tparam ?string args.instance_uuid
 -- @tparam ?string args.replicaset_uuid
 -- @tparam ?{string,...} args.roles
--- @tparam ?number args.timeout
 -- @tparam ?{[string]=string,...} args.labels
 -- @tparam ?string args.vshard_group
+-- @tparam ?boolean args.async
+--   don't wait for joined server to become ready
+--   (default: **false**)
+-- @tparam ?number args.timeout
+--   timeout (in seconds) for joined servers to become ready.
+--   (default: 30)
 -- @treturn[1] boolean true
 -- @treturn[2] nil
 -- @treturn[2] table Error description
@@ -437,9 +442,11 @@ local function join_server(args)
         instance_uuid = '?string',
         replicaset_uuid = '?string',
         roles = '?table',
-        timeout = '?number',
         labels = '?table',
         vshard_group = '?string',
+
+        async = '?boolean',
+        timeout = '?number',
     })
 
     if args.instance_uuid == nil then
@@ -448,6 +455,19 @@ local function join_server(args)
 
     if args.replicaset_uuid == nil then
         args.replicaset_uuid = uuid_lib.str()
+    end
+
+    if args.async == nil then
+        args.async = false
+    end
+
+    if args.timeout == nil then
+        args.timeout = 30
+    elseif not (args.timeout >= 0) then
+        return nil, errors.new('APIError',
+            'bad argument args.timeout to join_server' ..
+            ' (timeout must be positive, got %s)', args.timeout
+        )
     end
 
     local topology_cfg = confapplier.get_deepcopy('topology')
@@ -530,34 +550,40 @@ local function join_server(args)
         end
     end
 
-    local timeout = args.timeout or 0
-    if not (timeout > 0) then
-        return true
-    end
-
-    local deadline = fiber.time() + timeout
-    local cond = membership.subscribe()
-    local conn = nil
-    while not conn and fiber.time() < deadline do
-        cond:wait(0.2)
-
-        local member = membership.get_member(args.uri)
-        if (member ~= nil)
-        and (member.status == 'alive')
-        and (member.payload.uuid == args.instance_uuid)
-        and (member.payload.error == nil)
-        and (member.payload.ready)
-        then
-            conn = pool.connect(args.uri)
+    repeat -- until true
+        if args.async then
+            -- asynchronous call
+            -- don't wait for readiness
+            break
         end
-    end
-    membership.unsubscribe(cond)
 
-    if conn then
-        return true
-    else
-        return nil, e_topology_edit:new('Timeout connecting %q', args.uri)
-    end
+        local deadline = fiber.time() + args.timeout
+
+        local cond = membership.subscribe()
+        local conn = nil
+        while conn == nil and fiber.time() < deadline do
+            cond:wait(0.2)
+
+            local member = membership.get_member(args.uri)
+            if (member ~= nil)
+            and (member.status == 'alive')
+            and (member.payload.uuid == args.instance_uuid)
+            and (member.payload.error == nil)
+            and (member.payload.ready)
+            then
+                conn = pool.connect(args.uri)
+            end
+        end
+        membership.unsubscribe(cond)
+
+        if conn == nil then
+            return nil, errors.new('TimeoutError',
+                'Timeout connecting %q', args.uri
+            )
+        end
+    until true
+
+    return true
 end
 
 --- Edit an instance.
