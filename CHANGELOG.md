@@ -8,9 +8,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 
-- Operation `join_server` is synchronous by default now, timeout is infinite.
+- Operation `join_server` is synchronous by default now, timeout is 30 seconds.
   This can be managed with call arguments:
   `join_server({..., async = true/false, timeout = T})`.
+  With `async = true` timeout is ignored, function returns as soon as clusterwide
+  configuration is updated. Joined server remains unconfigured until if finishes
+  bootstraping and initial `box.cfg` with replication sync.
 
 ### Fixed
 
