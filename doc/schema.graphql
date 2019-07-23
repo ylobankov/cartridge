@@ -1,5 +1,5 @@
 # source: http://localhost:8081/admin/api
-# timestamp: Sun Jul 07 2019 23:41:02 GMT+0300 (MSK)
+# timestamp: Tue Jul 23 2019 14:28:07 GMT+0300 (MSK)
 
 """Cluster management"""
 type Apicluster {
@@ -51,7 +51,7 @@ type Mutation {
   edit_server(uuid: String!, uri: String, labels: [LabelInput]): Boolean
   probe_server(uri: String!): Boolean
   edit_replicaset(weight: Float, master: [String!], roles: [String!], uuid: String!, vshard_group: String): Boolean
-  join_server(replicaset_uuid: String, uri: String!, labels: [LabelInput], roles: [String!], instance_uuid: String, timeout: Float, vshard_group: String): Boolean
+  join_server(replicaset_uuid: String, roles: [String!], async: Boolean, labels: [LabelInput], instance_uuid: String, vshard_group: String, timeout: Float, uri: String!): Boolean
   bootstrap_vshard: Boolean
   expel_server(uuid: String!): Boolean
 }
