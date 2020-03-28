@@ -8,6 +8,7 @@ local checks = require('checks')
 
 local utils = require('cartridge.utils')
 local gql_types = require('cartridge.graphql.types')
+local tar = require('cartridge.tar')
 local module_name = 'cartridge.webui.api-config'
 
 json.cfg({
@@ -69,24 +70,13 @@ local function http_finalize_error(http_code, err)
     })
 end
 
-local function download_config_handler(req)
-    if not auth.authorize_request(req) then
-        local err = DownloadConfigError:new('Unauthorized')
-        return http_finalize_error(401, err)
-    end
-
-    local clusterwide_config = confapplier.get_active_config()
-    if clusterwide_config == nil then
-        local err = DownloadConfigError:new("Cluster isn't bootstrapped yet")
-        return http_finalize_error(409, err)
-    end
-
+local function download_yaml_config_handler(clusterwide_config)
     -- cut system sections
     local blacklist = table.copy(system_sections)
     for section, _ in pairs(clusterwide_config:get_readonly()) do
         -- don't download yaml representation of a section
-        if clusterwide_config:get_plaintext(section .. '.yml') then
-            blacklist[section .. '.yml'] = true
+        if section:endswith('.yml') then
+            blacklist[section] = true
         end
     end
 
@@ -105,6 +95,43 @@ local function download_config_handler(req)
         },
         body = yaml.encode(ret)
     })
+end
+
+local function download_tar_config_handler(clusterwide_config)
+    local ret = {}
+    for section, data in pairs(clusterwide_config:get_plaintext()) do
+        if not system_sections[section] then
+            ret[section] = data
+        end
+    end
+
+    return auth.render_response({
+        status = 200,
+        headers = {
+            ['content-type'] = "application/tar",
+            ['content-disposition'] = 'attachment; filename="config.tar"',
+        },
+        body = tar.pack(ret)
+    })
+end
+
+local function download_config_handler(req)
+    if not auth.authorize_request(req) then
+        local err = DownloadConfigError:new('Unauthorized')
+        return http_finalize_error(401, err)
+    end
+
+    local clusterwide_config = confapplier.get_active_config()
+    if clusterwide_config == nil then
+        local err = DownloadConfigError:new("Cluster isn't bootstrapped yet")
+        return http_finalize_error(409, err)
+    end
+
+    if req.path:match('config.tar') then
+        return download_tar_config_handler(clusterwide_config)
+    else
+        return download_yaml_config_handler(clusterwide_config)
+    end
 end
 
 local function upload_config(clusterwide_config)
@@ -271,10 +298,37 @@ local function init(graphql, httpd)
         path = '/admin/config',
         method = 'PUT'
     }, upload_config_handler)
+
+    httpd:route({
+        path = '/admin/config.yml',
+        method = 'GET'
+    }, download_config_handler)
+
+    httpd:route({
+        path = '/admin/config.tar',
+        method = 'GET'
+    }, download_config_handler)
+
     httpd:route({
         path = '/admin/config',
         method = 'GET'
-    }, download_config_handler)
+    }, function(request)
+        -- log.info('\n\n\nconfig')
+        -- local resp = req:redirect_to('admin/config.yml')
+        -- resp.status = 301
+        -- log.info('\n\n')
+        -- log.info(resp)
+
+        -- log.info(req)
+        log.info(request.headers.cookie)
+        return {
+            status = 301,
+            headers = {
+                location = '/admin/config.yml',
+                cookie = request.headers.cookie
+            }
+        }
+    end)
 
     return true
 end
