@@ -21,6 +21,7 @@ yaml.cfg({
 local DecodeYamlError = errors.new_class('DecodeYamlError')
 local DownloadConfigError = errors.new_class('Config download failed')
 local UploadConfigError = errors.new_class('Config upload failed')
+local UnknownConfigTypeError = errors.new_class('Uncknown config type')
 
 local auth = require('cartridge.auth')
 local twophase = require('cartridge.twophase')
@@ -38,6 +39,11 @@ local system_sections = {
     ['vshard.yml'] = true,
     ['vshard_groups'] = true,
     ['vshard_groups.yml'] = true,
+}
+
+local config_types = {
+    ['tar'] = true,
+    ['yaml'] = true,
 }
 
 local gql_type_section = gql_types.object({
@@ -70,49 +76,19 @@ local function http_finalize_error(http_code, err)
     })
 end
 
-local function download_yaml_config_handler(clusterwide_config)
-    -- cut system sections
-    local blacklist = table.copy(system_sections)
-    for section, _ in pairs(clusterwide_config:get_readonly()) do
-        -- don't download yaml representation of a section
-        if section:endswith('.yml') then
-            blacklist[section] = true
-        end
+local function validate_config_type(req)
+    local config_type = req:query_param('config_type')
+    if config_type == nil then
+        config_type = 'yaml'
     end
 
-    local ret = {}
-    for section, data in pairs(clusterwide_config:get_readonly()) do
-        if not blacklist[section] then
-            ret[section] = data
-        end
+    if not config_types[config_type] then
+        return nil, UnknownConfigTypeError:new(
+            'Unknown config type (got %s, expected tar or yaml)',
+            config_type
+        )
     end
-
-    return auth.render_response({
-        status = 200,
-        headers = {
-            ['content-type'] = "application/yaml",
-            ['content-disposition'] = 'attachment; filename="config.yml"',
-        },
-        body = yaml.encode(ret)
-    })
-end
-
-local function download_tar_config_handler(clusterwide_config)
-    local ret = {}
-    for section, data in pairs(clusterwide_config:get_plaintext()) do
-        if not system_sections[section] then
-            ret[section] = data
-        end
-    end
-
-    return auth.render_response({
-        status = 200,
-        headers = {
-            ['content-type'] = "application/tar",
-            ['content-disposition'] = 'attachment; filename="config.tar"',
-        },
-        body = tar.pack(ret)
-    })
+    return config_type
 end
 
 local function download_config_handler(req)
@@ -127,11 +103,49 @@ local function download_config_handler(req)
         return http_finalize_error(409, err)
     end
 
-    if req.path:match('config.tar') then
-        return download_tar_config_handler(clusterwide_config)
-    else
-        return download_yaml_config_handler(clusterwide_config)
+    local config_type, err = validate_config_type(req)
+    if not config_type then
+        return http_finalize_error(400, err)
     end
+
+    local body
+    local body_data = {}
+    if config_type == 'yaml' then
+        -- cut system sections
+        local blacklist = table.copy(system_sections)
+        for section, _ in pairs(clusterwide_config:get_readonly()) do
+            -- don't download yaml representation of a section
+            if clusterwide_config:get_plaintext(section .. '.yml') then
+                blacklist[section .. '.yml'] = true
+            end
+        end
+
+        for section, data in pairs(clusterwide_config:get_readonly()) do
+            if not blacklist[section] then
+                body_data[section] = data
+            end
+        end
+        body = yaml.encode(body_data)
+    elseif config_type == 'tar' then
+        for section, data in pairs(clusterwide_config:get_plaintext()) do
+            if not system_sections[section] then
+                body_data[section] = data
+            end
+        end
+        body = tar.pack(body_data)
+    end
+
+    return auth.render_response({
+        status = 200,
+        headers = {
+            ['content-type'] = string.format("application/%s", config_type),
+            ['content-disposition'] = string.format(
+                'attachment; filename="config.%s"',
+                config_type == 'yaml' and 'yml' or 'tar'
+            ),
+        },
+        body = body,
+    })
 end
 
 local function upload_config(clusterwide_config)
@@ -170,11 +184,20 @@ local function upload_config_handler(req)
     end
 
     local req_body = utils.http_read_body(req)
-    local conf_new, err
     if req_body == nil then
-        conf_new, err = nil, UploadConfigError:new('Request body must not be empty')
-    else
+       return http_finalize_error(400, UploadConfigError:new('Request body must not be empty'))
+    end
+
+    local config_type, err = validate_config_type(req)
+    if not config_type then
+        return http_finalize_error(400, err)
+    end
+
+    local conf_new, err
+    if config_type == 'yaml' then
         conf_new, err = DecodeYamlError:pcall(yaml.decode, req_body)
+    elseif config_type == 'tar' then
+        conf_new, err = tar.unpack(req_body)
     end
 
     if err ~= nil then
@@ -184,7 +207,7 @@ local function upload_config_handler(req)
         return http_finalize_error(400, err)
     end
 
-    log.warn('Config uploaded')
+    log.warn('Config (%s) uploaded', config_type)
 
     local clusterwide_config = ClusterwideConfig.new()
 
@@ -298,37 +321,10 @@ local function init(graphql, httpd)
         path = '/admin/config',
         method = 'PUT'
     }, upload_config_handler)
-
-    httpd:route({
-        path = '/admin/config.yml',
-        method = 'GET'
-    }, download_config_handler)
-
-    httpd:route({
-        path = '/admin/config.tar',
-        method = 'GET'
-    }, download_config_handler)
-
     httpd:route({
         path = '/admin/config',
         method = 'GET'
-    }, function(request)
-        -- log.info('\n\n\nconfig')
-        -- local resp = req:redirect_to('admin/config.yml')
-        -- resp.status = 301
-        -- log.info('\n\n')
-        -- log.info(resp)
-
-        -- log.info(req)
-        log.info(request.headers.cookie)
-        return {
-            status = 301,
-            headers = {
-                location = '/admin/config.yml',
-                cookie = request.headers.cookie
-            }
-        }
-    end)
+    }, download_config_handler)
 
     return true
 end
