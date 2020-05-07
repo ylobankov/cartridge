@@ -33,11 +33,6 @@ const styles = {
   weightInput: css`
     width: 97px;
   `,
-  errorMessage: css`
-    display: block;
-    height: 20px;
-    color: #F5222D;
-  `,
   filter: css`
     width: 305px;
   `,

@@ -24,7 +24,6 @@ const styles = {
   error: css`
     font-size: 12px;
     line-height: 20px;
-    color: #f5222d;
   `,
   uploadError: css`
     margin-bottom: 20px;

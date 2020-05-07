@@ -172,7 +172,6 @@ const probeServerRequestSaga = function* () {
 const failoverPromoteRequestSaga = function* () {
   yield takeLatest(CLUSTER_PAGE_FAILOVER_PROMOTE_REQUEST, function* ({ payload }) {
     try {
-      console.log(payload);
       const response = yield call(promoteFailoverLeader, payload);
 
       yield put({ type: CLUSTER_PAGE_FAILOVER_PROMOTE_REQUEST_SUCCESS });

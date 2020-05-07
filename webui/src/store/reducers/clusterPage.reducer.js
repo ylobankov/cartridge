@@ -119,7 +119,7 @@ export const initialState: ClusterPageState = {
   uploadConfigRequestStatus: getInitialRequestStatus(),
   applyTestConfigRequestStatus: getInitialRequestStatus(),
   applyTestConfigResponse: null,
-  changeFailoverRequestStatus: getInitialRequestStatus(),
+  changeFailoverRequestStatus: getInitialRequestStatus()
 };
 
 const pageMountReducer = getPageMountReducer(CLUSTER_PAGE_DID_MOUNT);

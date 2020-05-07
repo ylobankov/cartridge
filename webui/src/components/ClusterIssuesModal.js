@@ -20,7 +20,7 @@ export const ClusterIssuesModal = ({ issues, visible, onClose }: ClusterIssuesMo
     onClose={onClose}
     title={`Issues: ${issues.length}`}
     footerControls={[
-      <Button className='meta-test__closeClusterIssuesModal' onClick={onClose}>Close </Button>
+      <Button className='meta-test__closeClusterIssuesModal' onClick={onClose}>Close</Button>
     ]}
   >
     <ul>

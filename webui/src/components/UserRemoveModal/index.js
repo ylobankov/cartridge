@@ -1,8 +1,11 @@
 import React from 'react';
-import { connect } from 'react-redux';
-import { ConfirmModal } from '@tarantool.io/ui-kit';
-import { hideRemoveUserModal, removeUser } from 'src/store/actions/users.actions';
-import styled from 'react-emotion'
+import { css } from 'emotion';
+import { useStore } from 'effector-react';
+import { Alert, ConfirmModal, Text } from '@tarantool.io/ui-kit';
+import styled from 'react-emotion';
+import usersStore from 'src/store/effector/users';
+
+const { $userRemoveModal, hideModal, removeUserFx } = usersStore;
 
 const Container = styled.div`
   padding: 0 16px;
@@ -11,44 +14,35 @@ const Container = styled.div`
   line-height: 22px;
 `
 
-class UserRemoveModal extends React.Component {
-  handleOk = () => this.props.removeUser(this.props.username);
-
-  render() {
-    const {
-      hideRemoveUserModal,
-      removeUserModalVisible,
-      username
-    } = this.props;
-
-    return (
-      <ConfirmModal
-        className='meta-test__UserRemoveModal'
-        title="Please confirm"
-        visible={removeUserModalVisible}
-        onCancel={hideRemoveUserModal}
-        onConfirm={this.handleOk}
-        confirmText="Remove"
-      >
-        <Container>Removing user {username}</Container>
-      </ConfirmModal>
-    );
-  }
-}
-
-const mapStateToProps = ({
-  ui: {
-    removeUserModalVisible,
-    removeUserId: username
-  }
-}) => ({
-  removeUserModalVisible,
-  username
-});
-
-const mapDispatchToProps = {
-  hideRemoveUserModal,
-  removeUser
+const styles = {
+  error: css`
+    min-height: 24px;
+    margin: 16px 0 24px;
+  `
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(UserRemoveModal);
+export const UserRemoveModal = () => {
+  const { error, username, visible } = useStore($userRemoveModal);
+  const pending = useStore(removeUserFx.pending);
+
+  return (
+    <ConfirmModal
+      className='meta-test__UserRemoveModal'
+      title="Please confirm"
+      visible={visible}
+      onCancel={hideModal}
+      onConfirm={() => removeUserFx(username)}
+      confirmText="Remove"
+      confirmPreloader={pending}
+    >
+      <Container>
+        Removing user {username}
+        {error ? (
+          <Alert type="error" className={styles.error}>
+            <Text variant="basic">{error}</Text>
+          </Alert>
+        ) : null}
+      </Container>
+    </ConfirmModal>
+  );
+};
