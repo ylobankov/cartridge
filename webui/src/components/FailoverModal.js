@@ -3,6 +3,7 @@ import * as React from 'react';
 import { connect } from 'react-redux';
 import { css, cx } from 'emotion';
 import { getGraphqlErrorMessage } from 'src/api/graphql';
+import * as yup from 'yup'
 import { changeFailover, setVisibleFailoverModal } from 'src/store/actions/clusterPage.actions';
 import {
   Alert,
@@ -85,6 +86,44 @@ const SelectBox = ({ values = [], value, onChange, disabled }) => (
   />
 );
 
+const validationSchema = yup.object().shape({
+  mode: yup.mixed().oneOf(['disabled', 'eventual', 'stateful']),
+  tarantool_params: yup.mixed().when(
+    ['mode', 'state_provider'],
+    {
+      is: (mode, state_provider) => (mode === 'stateful' && state_provider === 'tarantool'),
+      then: yup.object().shape({
+        uri: yup.string().required(),
+        password: yup.string()
+      })
+    }
+  ),
+  state_provider: yup.mixed()
+    .when(
+      'mode',
+      {
+        is: 'stateful',
+        then: yup.mixed().oneOf(['etcd2', 'tarantool']).required()
+      }
+    ),
+  etcd2_params: yup.mixed().when(
+    ['mode', 'state_provider'],
+    {
+      is: (mode, state_provider) => (mode === 'stateful' && state_provider === 'etcd2'),
+      then: yup.object().shape({
+        endpoints: yup.string().required(),
+        password: yup.string(),
+        lock_delay: yup.number()
+          .transform((v, o) => o === '' ? null : v)
+          .typeError('Accepts positive number, ex: 1, 2.43...')
+          .nullable()
+          .moreThan(0, 'Accepts positive number, ex: 1, 2.43...'),
+        username: yup.string(),
+        prefix: yup.string()
+      })
+    }
+  )
+});
 
 type FailoverModalProps = FailoverApi & {
   dispatch: (action: FSA) => void,
@@ -132,13 +171,19 @@ class FailoverModal extends React.Component<FailoverModalProps, FailoverModalSta
     }
   }
 
+  validationResult: ?{ [string]: string } = null;
+  tntURIFieldTouched = false;
+
   handleModeChange = (mode: string) => this.setState({ mode });
 
   handleStateProviderChange = (state_provider: string) => this.setState({ state_provider });
 
   handleInputChange = (fieldPath: [string, string]) => ({ target }: InputEvent) => {
-
     if (target && (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) {
+      if (fieldPath[0] === 'tarantool_params' && fieldPath[1] === 'uri') {
+        this.tntURIFieldTouched = true;
+      }
+
       this.setState(prevState => ({
         [fieldPath[0]]: {
           ...prevState[fieldPath[0]],
@@ -146,6 +191,10 @@ class FailoverModal extends React.Component<FailoverModalProps, FailoverModalSta
         }
       }));
     }
+  }
+
+  getFieldError = (fieldPath: string) => {
+    return (this.validationResult && this.validationResult[fieldPath]) || null;
   }
 
   handleSubmit = (e: Event) => {
@@ -171,6 +220,26 @@ class FailoverModal extends React.Component<FailoverModalProps, FailoverModalSta
         : null,
       state_provider: mode === 'stateful' ? state_provider : null
     });
+  }
+
+  componentDidUpdate(_, prevState) {
+    if (this.state !== prevState) {
+      validationSchema.validate(this.state, { abortEarly: false })
+        .then(r => {
+          if (this.validationResult !== null) {
+            this.validationResult = null;
+            this.forceUpdate();
+          }
+        })
+        .catch(e => {
+          this.validationResult = {};
+          e.inner.forEach(({ path, message }) => {
+            this.validationResult && (this.validationResult[path] = message);
+          });
+
+          this.forceUpdate();
+        });
+    }
   }
 
   render() {
@@ -265,6 +334,8 @@ class FailoverModal extends React.Component<FailoverModalProps, FailoverModalSta
               value={tarantool_params.uri}
               disabled={mode !== 'stateful'}
               onChange={this.handleInputChange(['tarantool_params', 'uri'])}
+              error={this.tntURIFieldTouched && !!this.getFieldError('tarantool_params.uri')}
+              message={this.tntURIFieldTouched && this.getFieldError('tarantool_params.uri')}
             />
             <LabeledInput
               className={styles.inputField}
@@ -299,11 +370,14 @@ class FailoverModal extends React.Component<FailoverModalProps, FailoverModalSta
               />
               <LabeledInput
                 className={styles.inputField}
-                label='Delay, seconds'
+                label='Lock delay, seconds'
+                info='Time-to-live of coordinators lock'
                 inputClassName='meta-test__etcd2LockDelay'
                 value={etcd2_params.lock_delay}
                 disabled={mode !== 'stateful'}
                 onChange={this.handleInputChange(['etcd2_params', 'lock_delay'])}
+                error={!!this.getFieldError('etcd2_params.lock_delay')}
+                message={this.getFieldError('etcd2_params.lock_delay')}
               />
               <LabeledInput
                 className={styles.inputField}
@@ -322,6 +396,8 @@ class FailoverModal extends React.Component<FailoverModalProps, FailoverModalSta
               disabled={mode !== 'stateful'}
               rows={5}
               onChange={this.handleInputChange(['etcd2_params', 'endpoints'])}
+              error={!!this.getFieldError('etcd2_params.endpoints')}
+              message={this.getFieldError('etcd2_params.endpoints')}
             />
           </>
         )}
