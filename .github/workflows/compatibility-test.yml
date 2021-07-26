@@ -19,6 +19,11 @@ jobs:
         runs-on: [ubuntu-18.04]
         tarantool: ['1.10']
         cartridge: ['1.2.0', '2.3.0', '2.4.0']
+        include:
+          - runs-on: macOS-latest
+            tarantool: '1.10'
+            cartridge: '2.4.0'
+
     runs-on: ${{ matrix.runs-on }}
     env:
       CARTRIDGE_OLDER_PATH: cartridge-${{ matrix.cartridge }}
