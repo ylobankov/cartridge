@@ -18,7 +18,7 @@ end
 local ok, err = cartridge.cfg({
     roles = {},
     auth_backend_name = 'no-auth',
-})
+}, {memtx_use_mvcc_engine = true})
 
 if not ok then
     log.error('%s', err)

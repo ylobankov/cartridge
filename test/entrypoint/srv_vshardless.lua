@@ -25,7 +25,7 @@ local ok, err = cartridge.cfg({
     roles = {
         'mymodule',
     },
-})
+}, {memtx_use_mvcc_engine = true})
 
 if not ok then
     log.error('%s', err)

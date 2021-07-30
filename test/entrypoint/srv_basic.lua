@@ -174,7 +174,7 @@ local ok, err = errors.pcall('CartridgeCfgError', cartridge.cfg, {
     -- Compatibility tests run on cartridge 1.2.0
     -- which doesn't support it yet.
     upload_prefix = package.loaded['cartridge.upload'] and '../upload',
-})
+}, {memtx_use_mvcc_engine = true})
 if not ok then
     log.error('%s', err)
     os.exit(1)

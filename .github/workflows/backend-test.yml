@@ -89,7 +89,7 @@ jobs:
       fail-fast: false
       matrix:
         runs-on: [ubuntu-18.04]
-        tarantool: ['1.10']
+        tarantool: ['2.9']
     runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/setup-python@v2
@@ -97,6 +97,7 @@ jobs:
       - uses: tarantool/setup-tarantool@v1
         with:
           tarantool-version: '${{ matrix.tarantool }}'
+          nightly-build: true
 
       # Setup etcd
       - name: Install etcd

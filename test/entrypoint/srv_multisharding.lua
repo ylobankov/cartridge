@@ -22,7 +22,7 @@ local ok, err = cartridge.cfg({
         'cartridge.roles.vshard-storage',
         'cartridge.roles.vshard-router',
     },
-})
+}, {memtx_use_mvcc_engine = true})
 
 if not ok then
     log.error('%s', err)
