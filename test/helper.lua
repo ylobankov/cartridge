@@ -1,5 +1,7 @@
 require('strict').on()
 
+-- Temp fix until https://github.com/tarantool/tarantool/pull/6331 is merged
+require('table.new')
 local fio = require('fio')
 local checks = require('checks')
 local digest = require('digest')

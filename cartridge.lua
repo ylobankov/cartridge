@@ -22,6 +22,8 @@ local membership_network = require('membership.network')
 local http = require('http.server')
 local fiber = require('fiber')
 local socket = require('socket')
+-- Temp fix until https://github.com/tarantool/tarantool/pull/6331 is merged
+require('table.new')
 
 local rpc = require('cartridge.rpc')
 local auth = require('cartridge.auth')
