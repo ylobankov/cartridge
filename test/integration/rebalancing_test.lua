@@ -23,6 +23,7 @@ g.before_all = function()
         }},
         env = {
             TARANTOOL_BUCKET_COUNT = 300,
+            TARANTOOL_MEMTX_USE_MVCC_ENGINE = 'true',
         }
     })
     g.cluster:start()
