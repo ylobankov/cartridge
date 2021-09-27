@@ -29,3 +29,4 @@ import 'cypress-file-upload';
 import { addMatchImageSnapshotCommand } from 'cypress-image-snapshot/command';
 require('cypress-downloadfile/lib/downloadFileCommand');
 addMatchImageSnapshotCommand();
+
