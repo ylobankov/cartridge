@@ -26,7 +26,9 @@ describe('Screenshots', () => {
 		cy.task('tarantool', { code: `cleanup()` });
 	});
 
-	const pages = ['cluster/configuration', 'cluster/dashboard', 'cluster/users', 'cluster/code'];
+	const pages = ['cluster/dashboard', 'cluster/users', 'cluster/configuration', 'cluster/code'];
+	const indicator = ['.meta-test__ProbeServerBtn', '.meta-test__addUserBtn', '.meta-test__DownloadBtn',
+		'.meta-test__Code__apply_idle'];
 	const sizes = ['macbook-16'];
 
 	const prepareTest = page => {
@@ -37,10 +39,12 @@ describe('Screenshots', () => {
 	};
 
 	sizes.forEach(size => {
+		let i =0;
 		pages.forEach(page => {
 			it(`Should match previous screenshot '${page} Page' When '${size}' resolution`, () => {
 				prepareTest(page);
-				cy.wait(1000);
+				cy.get(indicator[i]);
+				i++;
 				cy.matchImageSnapshot();
 			});
 		});

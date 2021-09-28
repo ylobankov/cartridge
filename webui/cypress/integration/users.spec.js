@@ -53,6 +53,7 @@ describe('Users', () => {
     ////////////////////////////////////////////////////////////////////
     cy.log('Users page before changing');
     ////////////////////////////////////////////////////////////////////
+    //cy.matchImageSnapshot('Users page before changing');
     cy.get('h1:contains(Users)');
     cy.get('.meta-test__AuthToggle input').should('not.be.checked');
     cy.get('button:contains(Add user)').should('be.enabled');
@@ -72,6 +73,7 @@ describe('Users', () => {
     cy.log('Checks for add user form fields');
     ////////////////////////////////////////////////////////////////////
     cy.get('button:contains(Add user)').click();
+    //cy.matchImageSnapshot('Add user form before changing'); comment till fix
     cy.get('h2:contains(Add a new user)');
 
     //Add user form before changing
@@ -82,20 +84,24 @@ describe('Users', () => {
 
     //Checks for compliance
     cy.get('.meta-test__UserAddForm button:contains(Add)').click();
+    cy.matchImageSnapshot('Checks for compliance');
     cy.get('label:contains(Username)').parent('div').next().next().contains('username is a required field');
     cy.get('label:contains(Password)').parent('div').next().next().contains('password is a required field');
 
     //Validation errors
     cy.get('label:contains(Email)').parent('div').next().find('input').type('q');
+    //cy.matchImageSnapshot('Validation errors'); till be fixed
     cy.get('label:contains(Email)').parent('div').next().next().contains('email must be a valid email');
 
     //close modal without saving
     cy.get('h2:contains(Add a new user)').next().click();
+    //cy.matchImageSnapshot('Users page before changing'); till not be fixed
 
     ////////////////////////////////////////////////////////////////////
     cy.log('Add new user: success');
     ////////////////////////////////////////////////////////////////////
     cy.get('button:contains(Add user)').click();
+    //cy.matchImageSnapshot('Add user form before changing'); comment till fix
     cy.get('h2:contains(Add a new user)');
 
     cy.get('label:contains(Username)').parent('div').next().find('input').type('TestUserName');
@@ -103,7 +109,9 @@ describe('Users', () => {
     cy.get('label:contains(Email)').parent('div').next().find('input').type('testuser@qq.qq');
 
     cy.get('.meta-test__UserAddForm button:contains(Add)').click();
+
     cy.get('tbody tr[role="row"]').should('have.length', 2);
+    cy.matchImageSnapshot('Add new user: success');
 
     //checks for new user in list:
     cy.get('a:contains(TestUserName)')
@@ -119,7 +127,9 @@ describe('Users', () => {
     cy.log('Click on user name -> opening modal Edit user');
     ////////////////////////////////////////////////////////////////////
     cy.get('a:contains(TestUserName)').click();
+    //cy.matchImageSnapshot('Open modal Edit user'); comment till fixed
     cy.get('h2:contains(Edit TestUserName)').next().click();
+    //cy.matchImageSnapshot('Opened modal Edit user'); comment till fixed
     cy.get('h2:contains(Edit TestUserName)').should('not.exist');
 
     ////////////////////////////////////////////////////////////////////
@@ -132,6 +142,7 @@ describe('Users', () => {
     cy.get('.meta-test__LoginForm input[name="password"]').type('userpassword');
     cy.get('.meta-test__LoginFormBtn').click();
 
+    cy.matchImageSnapshot('Login user without full name');
     cy.get('.meta-test__LogoutBtn').children('span').should('contain', '');
     cy.get('.meta-test__LoginBtn').should('not.exist');
 
@@ -139,11 +150,14 @@ describe('Users', () => {
     cy.get('a:contains(TestUserName)').parents('tr').find('td').eq(3).find('button').eq(1).click();
     cy.get('.meta-test__UserRemoveModal button:contains(Remove)').click();
     cy.get('span:contains(user can not remove himself)');
+    cy.matchImageSnapshot('User cant delete himself');
     cy.get('.meta-test__UserRemoveModal button:contains(Cancel)').click();
 
     //logout:
     cy.get('.meta-test__LogoutBtn').click();
+    cy.matchImageSnapshot('Logout');
     cy.get('.meta-test__LogoutDropdown *').contains('Log out').click();
+    cy.matchImageSnapshot('Successful logout');
 
     ////////////////////////////////////////////////////////////////////
     cy.log('Edit user');
@@ -151,6 +165,7 @@ describe('Users', () => {
     cy.get('a:contains(TestUserName)').parents('tr').find('td').eq(3).find('button').eq(0).click();
     cy.get('h2:contains(Edit TestUserName)');
 
+    //cy.matchImageSnapshot('Edit user'); comment till fix
     cy.get('label:contains(New password)')
       .parent('div')
       .next()
@@ -161,6 +176,8 @@ describe('Users', () => {
     cy.get('label:contains(Full name)').parent('div').next().find('input').type('{selectall}{del}Edited Full Name');
     cy.get('button:contains(Save)').click();
 
+    cy.get('td:contains(Edited Full Name)');
+    cy.matchImageSnapshot('Edited user');
     cy.get('a:contains(TestUserName)')
       .parents('tr')
       .then((TestUserRow) => {
@@ -182,6 +199,7 @@ describe('Users', () => {
 
     cy.get('.meta-test__UserAddForm button:contains(Add)').click();
 
+    cy.matchImageSnapshot('User already exists: TestUserName');
     cy.get('.meta-test__UserAddForm').find("span:contains(User already exists: 'TestUserName')");
     cy.get('label:contains(Username)').parent('div').next().find('input').type('{selectall}{del}NewUserName');
     cy.get('.meta-test__UserAddForm button:contains(Add)').click();
@@ -191,6 +209,7 @@ describe('Users', () => {
     cy.get('.meta-test__UserAddForm button:contains(Add)').click();
 
     cy.get('tbody tr[role="row"]').should('have.length', 3);
+
 
     ////////////////////////////////////////////////////////////////////
     cy.log('Login and logout user with full name');
@@ -202,12 +221,15 @@ describe('Users', () => {
     cy.get('.meta-test__LoginForm input[name="password"]').type('EditedPassword');
     cy.get('.meta-test__LoginFormBtn').click();
 
+    cy.get('.meta-test__LogoutBtn')
+    cy.matchImageSnapshot('Login user with full name');
     cy.get('.meta-test__LogoutBtn').children('span').should('contain', 'Edited Full Name');
     cy.get('.meta-test__LoginBtn').should('not.exist');
 
     //logout:
     cy.get('.meta-test__LogoutBtn').click();
     cy.get('.meta-test__LogoutDropdown *').contains('Log out').click();
+    cy.matchImageSnapshot('Logout user with full name');
 
     ////////////////////////////////////////////////////////////////////
     cy.log('Remove user');
@@ -217,7 +239,8 @@ describe('Users', () => {
     cy.get('.meta-test__UserRemoveModal span:contains(Removing user TestUserName)');
     cy.get('.meta-test__UserRemoveModal button:contains(Remove)').click();
 
+    cy.matchImageSnapshot('Remove user');
     cy.get('.meta-test__UserRemoveModal').should('not.exist');
     cy.contains('TestUserName').should('not.exist');
-  });
+   });
 });
