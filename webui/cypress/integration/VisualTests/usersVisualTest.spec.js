@@ -1,4 +1,4 @@
-describe('Users', () => {
+describe('Users with Visual Tests', () => {
 	before(() => {
 		cy.task('tarantool', {
 			code: `
@@ -74,18 +74,23 @@ describe('Users', () => {
 		////////////////////////////////////////////////////////////////////
 		cy.get('button:contains(Add user)').click();
 		cy.get('label:contains(Username)');
-		cy.get('label:contains(Username)').parent('div').next().find('input').should('be.focused').should('have.value', '');
+		cy.get('label:contains(Username)').parent('div').next().find('input').should('be.focused')
+			.should('have.value', '');
 		cy.focused().blur();
 		cy.matchImageSnapshot('Add user form before changing'); //comment till fix
 		cy.get('label:contains(Username)').parent('div').next().find('input').focus();
-		cy.get('label:contains(Username)')
+		cy.get('label:contains(Username)');
 		cy.get('h2:contains(Add a new user)');
 
 		//Add user form before changing
-		cy.get('label:contains(Username)').parent('div').next().find('input').should('be.focused').should('have.value', '');
-		cy.get('label:contains(Password)').parent('div').next().find('input').should('have.value', '');
-		cy.get('label:contains(Email)').parent('div').next().find('input').should('have.value', '');
-		cy.get('label:contains(Full name)').parent('div').next().find('input').should('have.value', '');
+		cy.get('label:contains(Username)').parent('div').next().find('input').should('be.focused')
+			.should('have.value', '');
+		cy.get('label:contains(Password)').parent('div').next().find('input')
+			.should('have.value', '');
+		cy.get('label:contains(Email)').parent('div').next().find('input')
+			.should('have.value', '');
+		cy.get('label:contains(Full name)').parent('div').next().find('input')
+			.should('have.value', '');
 
 		//Checks for compliance
 		cy.get('.meta-test__UserAddForm button:contains(Add)').click();
@@ -102,14 +107,14 @@ describe('Users', () => {
 		//close modal without saving
 		cy.get('h2:contains(Add a new user)').next().click();
 		cy.get('button:contains(Add user)');
-		cy.matchImageSnapshot('Users page before changing'); //till not be fixed
+		cy.matchImageSnapshot('Users page before changing');
 
 		////////////////////////////////////////////////////////////////////
 		cy.log('Add new user: success');
 		////////////////////////////////////////////////////////////////////
 		cy.get('button:contains(Add user)').click();
 		cy.focused().blur();
-		cy.matchImageSnapshot('Add user form before changing'); //comment till fix
+		cy.matchImageSnapshot('Add user form before changing');
 		cy.get('h2:contains(Add a new user)');
 
 		cy.get('label:contains(Username)').parent('div').next().find('input').type('TestUserName');
@@ -156,7 +161,8 @@ describe('Users', () => {
 		cy.get('.meta-test__LoginBtn').should('not.exist');
 
 		//User cant delete himself
-		cy.get('a:contains(TestUserName)').parents('tr').find('td').eq(3).find('button').eq(1).click();
+		cy.get('a:contains(TestUserName)').parents('tr').find('td').eq(3).find('button')
+			.eq(1).click();
 		cy.get('.meta-test__UserRemoveModal button:contains(Remove)').click();
 		cy.get('span:contains(user can not remove himself)');
 		cy.matchImageSnapshot('User cant delete himself');
@@ -171,7 +177,8 @@ describe('Users', () => {
 		////////////////////////////////////////////////////////////////////
 		cy.log('Edit user');
 		////////////////////////////////////////////////////////////////////
-		cy.get('a:contains(TestUserName)').parents('tr').find('td').eq(3).find('button').eq(0).click();
+		cy.get('a:contains(TestUserName)').parents('tr').find('td').eq(3).find('button')
+			.eq(0).click();
 		cy.get('label:contains(New password)')
 			.parent('div')
 			.next()
@@ -179,7 +186,7 @@ describe('Users', () => {
 			.should('be.focused');
 
 		cy.focused().blur();
-		cy.matchImageSnapshot('Edit user'); //comment till fix
+		cy.matchImageSnapshot('Edit user');
 		cy.get('label:contains(New password)')
 			.parent('div')
 			.next()
@@ -191,8 +198,10 @@ describe('Users', () => {
 			.find('input')
 			.should('be.focused')
 			.type('{selectall}{del}EditedPassword');
-		cy.get('label:contains(Email)').parent('div').next().find('input').type('{selectall}{del}ee@ee.ee');
-		cy.get('label:contains(Full name)').parent('div').next().find('input').type('{selectall}{del}Edited Full Name');
+		cy.get('label:contains(Email)').parent('div').next().find('input')
+			.type('{selectall}{del}ee@ee.ee');
+		cy.get('label:contains(Full name)').parent('div').next().find('input')
+			.type('{selectall}{del}Edited Full Name');
 		cy.get('button:contains(Save)').click();
 
 		cy.get('td:contains(Edited Full Name)');
@@ -227,10 +236,8 @@ describe('Users', () => {
 		cy.get('label:contains(Email)').parent('div').next().find('input').type('{selectall}{del}new@qq.qq');
 		cy.get('.meta-test__UserAddForm button:contains(Add)').click();
 
-		//zaglushka dannie v odnom poriadke
 		cy.get('tbody tr[role="row"]').should('have.length', 3);
-
-
+		//cy.matchImageSnapshot('User has not been added'); zaglushka dannie v odnom poriadke
 		//////////////////////////////////////////////////////////////////
 		cy.log('Login and logout user with full name');
 		////////////////////////////////////////////////////////////////////
@@ -242,23 +249,25 @@ describe('Users', () => {
 		cy.get('.meta-test__LoginFormBtn').click();
 
 		cy.get('.meta-test__LogoutBtn')
-		//cy.matchImageSnapshot('Login user with full name'); comment till fix
+		//cy.matchImageSnapshot('Login user with full name'); zaglushka dannie v odnom poriadke
 		cy.get('.meta-test__LogoutBtn').children('span').should('contain', 'Edited Full Name');
 		cy.get('.meta-test__LoginBtn').should('not.exist');
 
 		//logout:
 		cy.get('.meta-test__LogoutBtn').click();
 		cy.get('.meta-test__LogoutDropdown *').contains('Log out').click();
-		//cy.matchImageSnapshot('Logout user with full name'); need to write mocks
+		//cy.matchImageSnapshot('Logout user with full name'); //need to write mocks
 
 		////////////////////////////////////////////////////////////////////
 		cy.log('Remove user');
 		////////////////////////////////////////////////////////////////////
-		cy.get('a:contains(TestUserName)').parents('tr').find('td').eq(3).find('button').eq(1).click();
+		cy.get('a:contains(TestUserName)').parents('tr').find('td').eq(3).find('button')
+			.eq(1).click();
 		cy.get('.meta-test__UserRemoveModal h2:contains(Please confirm)');
 		cy.get('.meta-test__UserRemoveModal span:contains(Removing user TestUserName)');
 		cy.get('.meta-test__UserRemoveModal button:contains(Remove)').click();
 
+		cy.get('a:contains(admin)');
 		cy.matchImageSnapshot('Remove user');
 		cy.get('.meta-test__UserRemoveModal').should('not.exist');
 		cy.contains('TestUserName').should('not.exist');

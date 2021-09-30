@@ -284,4 +284,18 @@ describe('Code page', () => {
 
     cy.get('.meta-test__Code__FileTree').contains('edited-folder-name').should('not.exist');
   });
+
+  it(`Check there is single notification in WebUI schema page #1201`, () => {
+    cy.visit('/admin/cluster/code');
+    cy.viewport(1920, 1080);
+    cy.get('[data-cy=meta-test__Validate]');
+    cy.get('.meta-test__Code__FileTree').contains('schema.yml').click();
+    cy.get('.meta-test__editFolderInTreeBtn');
+    cy.matchImageSnapshot('Not touched schema.yml is opened before spoil');
+    cy.get('.monaco-editor').click();
+    cy.focused().type(selectAllKeys + '{backspace}');
+    cy.get('.monaco-editor').type('spaces: false;');
+    cy.get('[data-cy=meta-test__Validate').click();
+    cy.matchImageSnapshot('Single failed error message');
+  });
 });
