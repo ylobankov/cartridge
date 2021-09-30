@@ -288,6 +288,7 @@ describe('Code page', () => {
   it(`Check there is single notification in WebUI schema page #1201`, () => {
     cy.visit('/admin/cluster/code');
     cy.viewport(1920, 1080);
+
     cy.get('[data-cy=meta-test__Validate]');
     cy.get('.meta-test__Code__FileTree').contains('schema.yml').click();
     cy.get('.meta-test__editFolderInTreeBtn');
