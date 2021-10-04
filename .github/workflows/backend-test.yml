@@ -184,9 +184,12 @@ jobs:
         if: steps.cache-pytest.outputs.cache-hit != 'true'
 
       - run: tarantoolctl rocks make
-      - run: |
-          sudo ulimit -n 24576
-          .rocks/bin/luatest -v
+      - name: set ulimit
+        run: |
+          ulimit -n 24576
+          ulimit -n
+
+      - run: .rocks/bin/luatest -v
 
       - name: Run pytest -v
         run: |
