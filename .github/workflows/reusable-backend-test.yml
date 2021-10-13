@@ -1,4 +1,4 @@
-name: Reusable Backend Test
+name: reusable-backend-test
 
 on:
   workflow_call:
@@ -38,9 +38,6 @@ jobs:
         # dependencies are already there.
         run: sudo dpkg -i tarantool*.deb
 
-      - run: sudo apt-get install net-tools
-      - run: sudo lsof -i :3301
-
       # Setup etcd
       - name: 'Install etcd'
         uses: ./.github/actions/setup-etcd
@@ -64,6 +61,12 @@ jobs:
       # Setup cartridge
       - name: 'Install cartridge'
         run: tarantoolctl rocks make
+
+      # Stop Mono server. This server starts and listen to 8084 port that is
+      # used for tests. Relevant to GitHub-hosted runners.
+      - name: 'Stop Mono server'
+        run: sudo kill -9 $(sudo lsof -t -i tcp:8084)
+        continue-on-error: true
 
       # Run tests
       - name: 'Run luatest'
