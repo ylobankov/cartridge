@@ -38,6 +38,9 @@ jobs:
         # dependencies are already there.
         run: sudo dpkg -i tarantool*.deb
 
+      - run: sudo apt-get install net-tools
+      - run: sudo lsof -i :3301
+
       # Setup etcd
       - name: 'Install etcd'
         uses: ./.github/actions/setup-etcd
